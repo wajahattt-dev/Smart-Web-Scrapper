@@ -1,27 +1,25 @@
+import sys
 import streamlit as st
 import subprocess
 import json
 import pandas as pd
 import os
-from datetime import datetime
 import traceback
 
-# Set page config first
-st.set_page_config(page_title="🕷️ Smart Web Scraper", layout="wide")
+st.write(f"Using Python executable: {sys.executable}")
 
-# Sidebar and UI code here (same as before) ...
-
-st.title("🕷️ Smart Web Scraper Dashboard")
-
-url = st.text_input("🌐 Enter the URL to scrape", "https://quotes.toscrape.com/")
-format_option = st.radio("📁 Select output format", ["CSV", "JSON"], horizontal=True)
+# Check if scrapy is installed
+import importlib.util
+if importlib.util.find_spec("scrapy") is None:
+    st.error("Scrapy is NOT installed in the environment.")
+else:
+    st.success("Scrapy is installed!")
 
 if st.button("🔄 Run Scraper"):
     with st.spinner("Running Scrapy spider..."):
         try:
-            # Run the scraper script as a subprocess and pass the URL
             result = subprocess.run(
-                ["python3", "website_scraper.py", url],
+                [sys.executable, "website_scraper.py", url],
                 capture_output=True,
                 text=True,
                 check=True
