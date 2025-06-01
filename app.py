@@ -1,45 +1,44 @@
 import streamlit as st
+import requests
+from bs4 import BeautifulSoup
 import pandas as pd
 import json
-from io import StringIO, BytesIO
 
-# Sample data
-data = {
-    "Name": ["Alice", "Bob", "Charlie"],
-    "Age": [25, 30, 22],
-    "Country": ["USA", "UK", "Canada"]
-}
+# App title
+st.title("🔎 Smart Web Scraper")
 
-# Convert to DataFrame
-df = pd.DataFrame(data)
+# URL input
+url = st.text_input("Enter a website URL to scrape:", "https://example.com")
 
-# Title
-st.title("📊 Display and Download JSON/CSV Data")
+if st.button("Scrape"):
+    try:
+        response = requests.get(url)
+        soup = BeautifulSoup(response.text, "html.parser")
 
-# --- Display Markdown Table ---
-st.subheader("📋 Data as Markdown Table")
-markdown_table = df.to_markdown(index=False)
-st.markdown(f"```markdown\n{markdown_table}\n```")
+        # Extract data (customize as needed)
+        data = []
+        for i, paragraph in enumerate(soup.find_all("p"), start=1):
+            text = paragraph.get_text(strip=True)
+            if text:
+                data.append({"Index": i, "Text": text})
 
-# --- Download Buttons ---
+        if data:
+            df = pd.DataFrame(data)
 
-# CSV Download
-csv_buffer = StringIO()
-df.to_csv(csv_buffer, index=False)
-csv_bytes = csv_buffer.getvalue().encode('utf-8')
-st.download_button(
-    label="⬇️ Download CSV",
-    data=csv_bytes,
-    file_name="data.csv",
-    mime="text/csv"
-)
+            # Display markdown table
+            st.markdown("### 📄 Scraped Data (Markdown Table)")
+            st.markdown(df.to_markdown(index=False), unsafe_allow_html=True)
 
-# JSON Download
-json_str = df.to_json(orient="records", indent=2)
-json_bytes = json_str.encode('utf-8')
-st.download_button(
-    label="⬇️ Download JSON",
-    data=json_bytes,
-    file_name="data.json",
-    mime="application/json"
-)
+            # Download JSON
+            json_data = json.dumps(data, indent=4)
+            st.download_button("⬇ Download JSON", json_data, file_name="scraped_data.json", mime="application/json")
+
+            # Download CSV
+            csv_data = df.to_csv(index=False)
+            st.download_button("⬇ Download CSV", csv_data, file_name="scraped_data.csv", mime="text/csv")
+
+        else:
+            st.warning("No paragraph content found on this page.")
+
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
