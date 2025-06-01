@@ -1,23 +1,24 @@
-import sys
 import streamlit as st
 import subprocess
 import json
 import pandas as pd
 import os
+import sys
 import traceback
 
-st.write(f"Using Python executable: {sys.executable}")
+st.set_page_config(page_title="Smart Web Scraper", layout="wide")
 
-# Check if scrapy is installed
-import importlib.util
-if importlib.util.find_spec("scrapy") is None:
-    st.error("Scrapy is NOT installed in the environment.")
-else:
-    st.success("Scrapy is installed!")
+st.title("🕷️ Smart Web Scraper")
+st.write("Enter a URL to scrape data from it.")
+
+url = st.text_input("🔗 Enter Website URL", placeholder="https://quotes.toscrape.com")
+
+format_option = st.selectbox("📄 Choose download format", ("JSON", "CSV"))
 
 if st.button("🔄 Run Scraper"):
-    with st.spinner("Running Scrapy spider..."):
+    with st.spinner("Scraping in progress..."):
         try:
+            # Run the scraper in a separate subprocess
             result = subprocess.run(
                 [sys.executable, "website_scraper.py", url],
                 capture_output=True,
@@ -27,17 +28,18 @@ if st.button("🔄 Run Scraper"):
 
             output_file = result.stdout.strip()
 
-            if not os.path.isfile(output_file):
-                st.error(f"❌ Output file not found.\n\n{output_file}")
+            if not os.path.exists(output_file):
+                st.error("❌ Scraper completed but output file not found.")
             else:
-                st.success(f"✅ Scraping finished! File: `{output_file}`")
+                st.success(f"✅ Scraping finished! Download or view the data below.")
 
+                # Load and display data
                 with open(output_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
 
                 df = pd.json_normalize(data)
 
-                search = st.text_input("🔍 Search text in quote or author")
+                search = st.text_input("🔍 Search in text or author")
                 if search:
                     df = df[df['text'].str.contains(search, case=False, na=False) |
                             df['author'].str.contains(search, case=False, na=False)]
@@ -46,14 +48,14 @@ if st.button("🔄 Run Scraper"):
 
                 if format_option == "CSV":
                     csv = df.to_csv(index=False).encode("utf-8")
-                    st.download_button("⬇️ Download CSV", csv, os.path.basename(output_file).replace(".json", ".csv"), "text/csv")
+                    st.download_button("⬇️ Download CSV", csv, output_file.replace(".json", ".csv"), "text/csv")
                 else:
                     json_str = json.dumps(data, indent=2)
-                    st.download_button("⬇️ Download JSON", json_str, os.path.basename(output_file), "application/json")
+                    st.download_button("⬇️ Download JSON", json_str, output_file, "application/json")
 
         except subprocess.CalledProcessError as e:
-            st.error(f"❌ Scraper failed to run.\n{e.stderr}")
+            st.error("❌ Scraper failed to run.")
+            st.code(e.stderr)
         except Exception as e:
-            st.error(f"❌ An error occurred: {str(e)}")
-            st.text("Full traceback:")
+            st.error("❌ An unexpected error occurred.")
             st.code(traceback.format_exc())
