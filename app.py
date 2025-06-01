@@ -19,7 +19,7 @@ with st.sidebar:
 
         This application streamlines the process of web data collection, making it
         accessible even for those without extensive programming knowledge.
-        """)
+    """)
     st.markdown("---")
     st.markdown(f"""
         <div style="text-align: center; font-size: small; color: grey;">
@@ -39,7 +39,9 @@ if st.button("🔄 Run Scraper"):
     with st.spinner("Running Scrapy spider..."):
         try:
             output_file = run_scraper(url)
-
+        except Exception as e:
+            st.error(f"❌ An error occurred: {str(e)}")
+        else:
             if not os.path.isfile(output_file):
                 st.error(f"❌ Output file not found.\n\n{output_file}")
             else:
@@ -65,5 +67,3 @@ if st.button("🔄 Run Scraper"):
                 else:
                     json_str = json.dumps(data, indent=2)
                     st.download_button("⬇️ Download JSON", json_str, os.path.basename(output_file), "application/json")
-        except Exception as e:
-            st.error(f"❌ An error occurred: {e}")
