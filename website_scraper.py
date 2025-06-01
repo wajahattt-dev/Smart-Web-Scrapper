@@ -8,12 +8,14 @@ from datetime import datetime
 
 class QuoteSpider(scrapy.Spider):
     name = "quotes"
-    start_urls = []
 
     def __init__(self, url='', **kwargs):
         super().__init__(**kwargs)
-        self.start_urls = [url]
+        self.url = url
         self.results = []
+
+    def start_requests(self):
+        yield scrapy.Request(url=self.url, callback=self.parse)
 
     def parse(self, response):
         for quote in response.css("div.quote"):
@@ -34,21 +36,20 @@ def run_scraper(url):
     settings.set('LOG_ENABLED', False)  # Optional: turn off logs
 
     process = CrawlerProcess(settings)
-    spider = QuoteSpider(url=url)
-    process.crawl(spider)
+    process.crawl(QuoteSpider, url=url)  # ✅ Correct usage
     process.start()
 
     with open(output_file, "w", encoding="utf-8") as f:
-        json.dump(spider.results, f, ensure_ascii=False, indent=2)
+        json.dump(process.spider.results, f, ensure_ascii=False, indent=2)
 
     return output_file
 
-# Optional CLI usage
+# CLI usage
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("❌ Please provide a URL to scrape.")
         sys.exit(1)
     
     url = sys.argv[1]
-    file_path = run_scraper(url)
-    print(file_path)  # So app.py could capture if needed
+    output_file = run_scraper(url)
+    print(output_file)
