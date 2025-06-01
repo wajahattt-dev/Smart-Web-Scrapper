@@ -1,10 +1,9 @@
 import streamlit as st
-import subprocess
 import json
 import pandas as pd
 import os
-import re
 from datetime import datetime
+from website_scraper import run_scraper
 
 # Set page config first
 st.set_page_config(page_title="🕷️ Smart Web Scraper", layout="wide")
@@ -38,25 +37,8 @@ format_option = st.radio("📁 Select output format", ["CSV", "JSON"], horizonta
 
 if st.button("🔄 Run Scraper"):
     with st.spinner("Running Scrapy spider..."):
-        # Make sure outputs directory exists
-        os.makedirs("outputs", exist_ok=True)
-
-        # Run the scraper script
-        result = subprocess.run(
-            ["python", "website_scraper.py", url],
-            capture_output=True,
-            text=True
-        )
-
-        # Hide the stderr logs by commenting these lines out
-        # st.subheader("📄 Scraper stderr")
-        # st.code(result.stderr)
-
-        if result.returncode != 0:
-            st.error("❌ Scraper failed to run.")
-        else:
-            # Try to get the JSON path from stdout
-            output_file = result.stdout.strip().replace("\\", "/").replace("\n", "").replace("\r", "")
+        try:
+            output_file = run_scraper(url)
 
             if not os.path.isfile(output_file):
                 st.error(f"❌ Output file not found.\n\n{output_file}")
@@ -69,10 +51,10 @@ if st.button("🔄 Run Scraper"):
                 df = pd.json_normalize(data)
 
                 # Optional search bar
-                search = st.text_input("🔍 Search text in page title or URL")
+                search = st.text_input("🔍 Search text in quote or author")
                 if search:
-                    df = df[df['title'].str.contains(search, case=False, na=False) |
-                            df['url'].str.contains(search, case=False, na=False)]
+                    df = df[df['text'].str.contains(search, case=False, na=False) |
+                            df['author'].str.contains(search, case=False, na=False)]
 
                 st.dataframe(df, use_container_width=True)
 
@@ -83,3 +65,5 @@ if st.button("🔄 Run Scraper"):
                 else:
                     json_str = json.dumps(data, indent=2)
                     st.download_button("⬇️ Download JSON", json_str, os.path.basename(output_file), "application/json")
+        except Exception as e:
+            st.error(f"❌ An error occurred: {e}")
