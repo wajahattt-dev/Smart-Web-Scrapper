@@ -3,6 +3,7 @@ import json
 import pandas as pd
 import os
 from datetime import datetime
+import traceback
 from website_scraper import run_scraper
 
 # Set page config first
@@ -41,6 +42,8 @@ if st.button("🔄 Run Scraper"):
             output_file = run_scraper(url)
         except Exception as e:
             st.error(f"❌ An error occurred: {str(e)}")
+            st.text("Full traceback:")
+            st.code(traceback.format_exc())
         else:
             if not os.path.isfile(output_file):
                 st.error(f"❌ Output file not found.\n\n{output_file}")
